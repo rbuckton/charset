@@ -1,2 +1,2 @@
 # ucdata-charset
-ucdata CharSet
+CharSet class for the ucdata package

@@ -1,0 +1,29 @@
+{
+  "name": "ucdata-charset",
+  "version": "0.0.0",
+  "description": "CharSet class for the ucdata package",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "compile": "tsc -p ./"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rbuckton/ucdata-charset.git"
+  },
+  "keywords": [
+    "unicode",
+    "ucd",
+    "charset"
+  ],
+  "author": "Ron Buckton <rbuckton@chronicles.org>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/rbuckton/ucdata-charset/issues"
+  },
+  "homepage": "https://github.com/rbuckton/ucdata-charset#readme",
+  "dependencies": {
+    "typescript": "^2.7.1"
+  }
+}
