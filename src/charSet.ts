@@ -171,7 +171,7 @@ export class CharSet {
      * Creates a new CharSet that is every code point not included in this CharSet.
      */
     public invert() {
-        return CharSet._create(invert(this._root, new Range(CharSet.MIN_CODE_POINT, CharSet.MAX_CODE_POINT)));
+        return CharSet._create(invert(this._root, anyCodePoint));
     }
 
     /**
