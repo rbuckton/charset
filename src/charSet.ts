@@ -68,8 +68,8 @@ export class CharSet {
             let characterClass = "[";
             for (const range of iterate(this._root)) {
                 characterClass += range.size === 0
-                    ? escapeCodePoint(range.start)
-                    : escapeCodePoint(range.start) + "-" + escapeCodePoint(range.end);
+                    ? `\\u{${range.start.toString(16)}}`
+                    : `\\u{${range.start.toString(16)}}-\\u{${range.end.toString(16)}}`;
             }
             this._characterClass = characterClass + "]";
         }
@@ -236,8 +236,4 @@ export class CharSet {
         charSet._root = root;
         return charSet;
     }
-}
-
-function escapeCodePoint(codePoint: number) {
-    return `\\u{${codePoint.toString(16)}}`;
 }
