@@ -15,4 +15,3 @@
  */
 
 export { CharSet } from "./charSet";
-export { CodePointRangeMap } from "./codePointRangeMap";

@@ -6,11 +6,25 @@
         {
             "type": "npm",
             "script": "compile",
-            "problemMatcher": [
-                "$tsc"
-            ],
+            "problemMatcher": ["$tsc"],
             "group": {
                 "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "type": "npm",
+            "script": "test",
+            "problemMatcher": ["$tsc"],
+            "group": "test"
+        },
+        {
+            "type": "npm",
+            "script": "test-watch",
+            "problemMatcher": ["$tsc"],
+            "isBackground": true,
+            "group": {
+                "kind": "test",
                 "isDefault": true
             }
         }
