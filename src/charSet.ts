@@ -14,7 +14,8 @@
  *   limitations under the License.
  */
 
-import { Range, Node, insert, remove, union, intersect, difference, invert, deserialize, search, equals, serialize, size, rangeSize, leftmost, supersetOf, iterate } from "./rangeTree"
+import { Range, Node, insert, remove, union, intersect, difference, invert, deserialize, search,
+    equals, serialize, size, rangeSize, leftmost, supersetOf, iterate } from "./rangeTree"
 
 const MIN_CODE_POINT = 0;
 const MAX_CODE_POINT = 0x10ffff;
@@ -28,9 +29,9 @@ export class CharSet {
     public static readonly MAX_CODE_POINT = MAX_CODE_POINT;
     public static readonly MAX_ASCII_CODE_POINT = MAX_ASCII_CODE_POINT;
 
-    private static _empty: CharSet;
-    private static _any: CharSet;
-    private static _ascii: CharSet;
+    private static _empty: CharSet | undefined;
+    private static _any: CharSet | undefined;
+    private static _ascii: CharSet | undefined;
 
     private _root: Node | null;
     private _codePointRangeCount = -1;
