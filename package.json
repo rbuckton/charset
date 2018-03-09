@@ -6,8 +6,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "compile": "tsc -p ./",
-    "test": "jest",
-    "test-watch": "jest --watch --coverage"
+    "test": "jest --coverage",
+    "test-watch": "jest --coverage --watch",
+    "prepublishOnly": "npm run compile & jest"
   },
   "repository": {
     "type": "git",
