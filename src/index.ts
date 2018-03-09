@@ -14,4 +14,4 @@
  *   limitations under the License.
  */
 
-export { CharSet } from "./charSet";
+export { CharSet, ReadonlyCharSet } from "./charSet";

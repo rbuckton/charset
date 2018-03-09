@@ -16,6 +16,7 @@
 
 const MIN_CODE_POINT = 0;
 const MAX_CODE_POINT = 0x10ffff;
+const MAX_ASCII_CODE_POINT = 0x7f;
 
 class Range {
     public static readonly domain = new Range(MIN_CODE_POINT, MAX_CODE_POINT);
@@ -120,8 +121,10 @@ export interface ReadonlyCharSet {
 export class CharSet {
     public static readonly MIN_CODE_POINT = MIN_CODE_POINT;
     public static readonly MAX_CODE_POINT = MAX_CODE_POINT;
+    public static readonly MAX_ASCII_CODE_POINT = MAX_ASCII_CODE_POINT;
     private static _empty: ReadonlyCharSet | undefined;
     private static _any: ReadonlyCharSet | undefined;
+    private static _ascii: ReadonlyCharSet | undefined;
     private _tree: Tree;
     private _characterClass: string | undefined = undefined;
 
@@ -162,15 +165,19 @@ export class CharSet {
         return CharSet._any || (CharSet._any = Object.freeze(new CharSet().add(MIN_CODE_POINT, MAX_CODE_POINT)));
     }
 
+    public static ascii() {
+        return CharSet._ascii || (CharSet._ascii = Object.freeze(new CharSet().add(MIN_CODE_POINT, MAX_ASCII_CODE_POINT)));
+    }
+
     public static range(fromCodePoint: number, toCodePoint: number) {
         return new CharSet().add(fromCodePoint, toCodePoint);
     }
 
-    public static from(iterable: Iterable<number | [number, number] | CharSet>) {
+    public static from(iterable: Iterable<number | [number, number] | ReadonlyCharSet>) {
         return new CharSet(iterable);
     }
 
-    public static of(...args: (number | [number, number] | CharSet)[]) {
+    public static of(...args: (number | [number, number] | ReadonlyCharSet)[]) {
         return new CharSet(args);
     }
 

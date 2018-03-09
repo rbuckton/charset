@@ -1,6 +1,6 @@
 {
   "name": "chardata-charset",
-  "version": "0.0.0-alpha.1",
+  "version": "0.0.0-alpha.2",
   "description": "CharSet class for the ucdata package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -45,6 +45,8 @@
       "src/{charSet}.ts"
     ],
     "coverageDirectory": "coverage",
-    "coverageReporters": ["lcov"]
+    "coverageReporters": [
+      "lcov"
+    ]
   }
 }
