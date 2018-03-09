@@ -1,6 +1,6 @@
 {
   "name": "chardata-charset",
-  "version": "0.0.0-alpha",
+  "version": "0.0.0-alpha.1",
   "description": "CharSet class for the ucdata package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -39,10 +39,10 @@
     "transform": {
       "\\.ts$": "ts-jest"
     },
-    "testRegex": "/src/.*\\.test\\.ts$",
+    "testRegex": "/src/__test__/.*\\.ts$",
     "collectCoverage": false,
     "collectCoverageFrom": [
-      "src/{charSet,rangeTree}.ts"
+      "src/{charSet}.ts"
     ],
     "coverageDirectory": "coverage",
     "coverageReporters": ["lcov"]
