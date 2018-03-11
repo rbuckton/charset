@@ -1,14 +1,15 @@
 {
   "name": "chardata-charset",
-  "version": "0.0.0-alpha.2",
+  "version": "0.0.0-alpha.3",
   "description": "CharSet class for the ucdata package",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "clean": "rimraf dist",
     "compile": "tsc -p ./",
     "test": "jest --coverage",
     "test-watch": "jest --coverage --watch",
-    "prepublishOnly": "npm run compile & jest"
+    "prepublishOnly": "npm run clean & npm run compile & npm run test"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@types/jest": "^22.1.3",
     "jest": "^22.4.2",
+    "rimraf": "^2.6.2",
     "ts-jest": "^22.4.0",
     "typescript": "^2.7.1"
   },

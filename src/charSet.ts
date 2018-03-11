@@ -66,6 +66,8 @@ class Node {
         nil.left = nil;
         nil.right = nil;
         nil.range = new Range(0);
+        nil.min = nil.range;
+        nil.max = nil.range;
         nil.height = 0;
         Object.freeze(nil.tree);
         Object.freeze(nil.range);
@@ -79,6 +81,8 @@ class Node {
     public right: Node;
     public range: Range;
     public height: number;
+    public min: Range;
+    public max: Range;
 
     constructor(tree: Tree, range: Range) {
         this.tree = tree;
@@ -86,6 +90,8 @@ class Node {
         this.left = Node.nil;
         this.right = Node.nil;
         this.range = range;
+        this.min = range;
+        this.max = range;
         this.height = 1;
     }
 
@@ -302,7 +308,7 @@ export class CharSet {
             if (start._tree.codePointRangeCount === 0) return this;
             if (start._tree.codePointRangeCount > 1) {
                 const tree = new Tree();
-                tree.root = union(tree, this._tree.root, start._tree.root)[1];
+                tree.root = union(tree, this._tree.root, start._tree.root);
                 this._tree = tree;
                 return this;
             }
@@ -382,7 +388,7 @@ export class CharSet {
     public union(other: ReadonlyCharSet) {
         if (!(other instanceof CharSet)) throw new TypeError();
         const set = new CharSet();
-        set._tree.root = union(set._tree, this._tree.root, other._tree.root)[1];
+        set._tree.root = union(set._tree, this._tree.root, other._tree.root);
         return set;
     }
 
@@ -522,13 +528,30 @@ export class CharSet {
             assertEqual(node.parent, parent, `Incorrect parent.`);
             assert(parent !== Node.nil || tree.root === node, `Non-root node has no parent.`);
             assert(Math.abs(balance(node)) <= 1, `Off-balance node: ${node["_debugToString"](true)}`);
-            if (parent.left === node) assert(node.range.end < parent.range.start - 1, `${node["_debugToString"]()} overlaps or is adjacent to range of parent (${node.parent["_debugToString"]()})`);
-            if (parent.right === node) assert(node.range.start > parent.range.end + 1, `${node["_debugToString"]()} overlaps or is adjacent to range of parent (${node.parent["_debugToString"]()})`);
+            if (parent.left === node) {
+                assert(node.range.end < parent.range.start - 1, `${node["_debugToString"]()} overlaps or is adjacent to range of parent (${node.parent["_debugToString"]()})`);
+            }
+            if (parent.right === node) {
+                assert(node.range.start > parent.range.end + 1, `${node["_debugToString"]()} overlaps or is adjacent to range of parent (${node.parent["_debugToString"]()})`);
+            }
             assert(!seen.has(node), `Cycle exists in tree.`);
             context.codePointRangeCount++;
             context.codePointCount += node.range.size;
             visit(tree, node.left, node);
+            if (node.left !== Node.nil) {
+                assertEqual(node.min["_debugToString"](), node.left.min["_debugToString"](), `Incorrect min for node: ${node["_debugToString"]()}`);
+            }
+            else {
+                assertEqual(node.min["_debugToString"](), node.range["_debugToString"](), `Incorrect min for node: ${node["_debugToString"]()}`);
+            }
+
             visit(tree, node.right, node);
+            if (node.right !== Node.nil) {
+                assertEqual(node.max["_debugToString"](), node.right.max["_debugToString"](), `Incorrect max for node: ${node["_debugToString"]()}`);
+            }
+            else {
+                assertEqual(node.max["_debugToString"](), node.range["_debugToString"](), `Incorrect max for node: ${node["_debugToString"]()}`);
+            }
         }
 
         function assert(test: any, message: string = "Assertion failed.") {
@@ -593,6 +616,8 @@ function balance(node: Node) {
 
 function recalculate(node: Node) {
     node.height = 1 + (node.left.height > node.right.height ? node.left.height : node.right.height);
+    node.min = node.left === Node.nil ? node.range : node.left.min;
+    node.max = node.right === Node.nil ? node.range : node.right.max;
 }
 
 function rotateLeft(node: Node) {
@@ -677,10 +702,8 @@ function insert(tree: Tree, node: Node, parent: Node, k: Range): Node {
             node.right = insert(tree, node.right, node, k);
             reuseFrame = false;
         }
-        else if (k.start >= m.start && k.end <= m.end) { // k is entirely within m
-            return node;
-        }
         else if (k.start < m.start && node.left !== Node.nil) { // k overlaps m.start
+            if (k.start - 1 === node.left.max.end) console.log("Abuts left max end");
             node.left = remove(tree, node.left, node, new Range(k.start, m.start - 1));
             node.range = new Range(k.start, m.end);
             tree.hasChanges = true;
@@ -694,11 +717,22 @@ function insert(tree: Tree, node: Node, parent: Node, k: Range): Node {
             tree.codePointCount += k.end - m.end;
             reuseFrame = true; // try again (reuse stack frame)
         }
+        else if (node.left !== Node.nil && k.start - 1 === node.left.max.end) {
+            k = new Range(node.left.max.start, k.end);
+            reuseFrame = true;
+        }
+        else if (node.right !== Node.nil && k.end + 1 === node.right.min.start) {
+            k = new Range(k.start, node.right.min.end);
+            reuseFrame = true;
+        }
+        else if (k.start >= m.start && k.end <= m.end) { // k is entirely within m
+            return node;
+        }
         else {
             node.range = new Range(Math.min(m.start, k.start), Math.max(m.end, k.end));
             tree.hasChanges = true;
             tree.codePointCount += node.range.size - m.size;
-            return node;
+            reuseFrame = false;
         }
 
         recalculate(node);
@@ -775,13 +809,13 @@ function remove(tree: Tree, node: Node, parent: Node, k: Range): Node {
                 node.range = new Range(m.start, k.start - 1);
                 tree.hasChanges = true;
                 tree.codePointCount -= m.size - node.range.size;
-                return node;
+                reuseFrame = false;
             }
             else if (k.start === m.start && k.end < m.end) { // k removes left part of m
                 node.range = new Range(k.end + 1, m.end);
                 tree.hasChanges = true;
                 tree.codePointCount -= m.size - node.range.size;
-                return node;
+                reuseFrame = false;
             }
             else if (k.start > m.start && k.end < m.end) { // k bisects m
                 node.range = new Range(m.start, k.start - 1);
@@ -881,11 +915,11 @@ function successor(node: Node) {
 
 function createNode(tree: Tree, left: Node, range: Range, right: Node) {
     const node = new Node(tree, range);
-    node.left = importSubtree(tree, left, /*includeMinMax*/ false);
-    node.right = importSubtree(tree, right, /*includeMinMax*/ false);
-    recalculate(node);
+    node.left = importSubtree(tree, left);
+    node.right = importSubtree(tree, right);
     if (node.left !== Node.nil) node.left.parent = node;
     if (node.right !== Node.nil) node.right.parent = node;
+    recalculate(node);
     return node;
 }
 
@@ -974,34 +1008,34 @@ function splitLast(tree: Tree, T: Node): [Node, Range] {
     return [join(tree, L, k, T_), k_];
 }
 
-function importSubtree(tree: Tree, node: Node, includeMinMax: false, context?: Tree): Node;
-function importSubtree(tree: Tree, node: Node, includeMinMax: true, context?: Tree): [Range | undefined, Node, Range | undefined];
-function importSubtree(tree: Tree, node: Node, includeMinMax: boolean, context?: Tree): [Range | undefined, Node, Range | undefined] | Node {
-    if (node === Node.nil) return includeMinMax ? [undefined, Node.nil, undefined] : Node.nil;
+function importSubtree(tree: Tree, node: Node, context?: Tree): Node {
+    if (node === Node.nil) return Node.nil;
     const root = new Node(tree, node.range);
+    root.min = node.min;
+    root.max = node.max;
     root.height = node.height;
     let current = node;
     let clone = root;
-    let min = root.range;
-    let max = root.range;
     if (context) context.codePointRangeCount++, context.codePointCount += clone.range.size;
     while (current !== Node.nil && current !== node.parent) {
         if (current.left !== Node.nil && clone.left === Node.nil) {
             clone.left = new Node(tree, current.left.range);
+            clone.left.min = current.left.min;
+            clone.left.max = current.left.max;
             clone.left.parent = clone;
             clone.left.height = current.left.height;
             clone = clone.left;
             current = current.left;
-            if (includeMinMax && clone.range.start < min.start) min = clone.range;
             if (context) context.codePointRangeCount++, context.codePointCount += clone.range.size;
         }
         else if (current.right !== Node.nil && clone.right === Node.nil) {
             clone.right = new Node(tree, current.right.range);
             clone.right.parent = clone;
             clone.right.height = current.right.height;
+            clone.right.min = current.right.min;
+            clone.right.max = current.right.max;
             clone = clone.right;
             current = current.right;
-            if (includeMinMax && clone.range.end > max.end) max = clone.range;
             if (context) context.codePointRangeCount++, context.codePointCount += clone.range.size;
         }
         else {
@@ -1010,37 +1044,43 @@ function importSubtree(tree: Tree, node: Node, includeMinMax: boolean, context?:
             clone = clone.parent;
         }
     }
-    return includeMinMax ? [min, root, max] : root;
+    return root;
 }
 
-function union(tree: Tree, T1: Node, T2: Node): [Range | undefined, Node, Range | undefined] {
-    if (T1 === Node.nil) return importSubtree(tree, T2, /*includeMinMax*/ true, tree);
-    if (T2 === Node.nil) return importSubtree(tree, T1, /*includeMinMax*/ true, tree);
+function union(tree: Tree, T1: Node, T2: Node): Node {
+    if (T1 === Node.nil) return importSubtree(tree, T2, tree);
+    if (T2 === Node.nil) return importSubtree(tree, T1, tree);
     const { left: L2, range: k2, right: R2 } = T2;
     const [L1, k1, R1] = split(tree, T1, k2);
     let k = k1 ? new Range(Math.min(k1.start, k2.start), Math.max(k1.end, k2.end)) : k2;
-    let [Tlmin, Tl, Tlmax] = union(tree, L1, L2);
-    let [Trmin, Tr, Trmax] = union(tree, R1, R2);
+    let Tl = union(tree, L1, L2);
+    let Tr = union(tree, R1, R2);
 
-    if (Tlmax && Tlmax.end === k.start - 1) {
-        tree.codePointRangeCount--;
-        tree.codePointCount -= Tlmax.size;
-        const [Tll, , Tlr] = split(tree, Tl, Tlmax);
-        Tl = join2(tree, Tll, Tlr);
-        k = new Range(Tlmax.start, k.end);
+    if (Tl !== Node.nil) {
+        const Tlmax = Tl.max;
+        if (Tlmax.end === k.start - 1) {
+            tree.codePointRangeCount--;
+            tree.codePointCount -= Tlmax.size;
+            const [Tll, , Tlr] = split(tree, Tl, Tlmax);
+            Tl = join2(tree, Tll, Tlr);
+            k = new Range(Tlmax.start, k.end);
+        }
     }
 
-    if (Trmin && Trmin.start === k.end + 1) {
-        tree.codePointRangeCount--;
-        tree.codePointCount -= Trmin.size;
-        const [Trl, , Trr] = split(tree, Tr, Trmin);
-        Tr = join2(tree, Trl, Trr);
-        k = new Range(k.start, Trmin.end);
+    if (Tr !== Node.nil) {
+        const Trmin = Tr.min;
+        if (Trmin.start === k.end + 1) {
+            tree.codePointRangeCount--;
+            tree.codePointCount -= Trmin.size;
+            const [Trl, , Trr] = split(tree, Tr, Trmin);
+            Tr = join2(tree, Trl, Trr);
+            k = new Range(k.start, Trmin.end);
+        }
     }
 
     tree.codePointRangeCount++;
     tree.codePointCount += k.size;
-    return [Tlmin, join(tree, Tl, k, Tr), Trmax];
+    return join(tree, Tl, k, Tr);
 }
 
 function intersect(tree: Tree, T1: Node, T2: Node): Node {
@@ -1054,7 +1094,7 @@ function intersect(tree: Tree, T1: Node, T2: Node): Node {
         const [,,T1r] = split(tree, T1, new Range(k2.start - 1));
         const [Tm] = split(tree, T1r, new Range(k2.end + 1));
         if (Tm !== Node.nil) {
-            return join2(tree, join2(tree, Tl, importSubtree(tree, Tm, /*includeMinMax*/ false, tree)), Tr);
+            return join2(tree, join2(tree, Tl, importSubtree(tree, Tm, tree)), Tr);
         }
     }
     return join2(tree, Tl, Tr);
@@ -1062,7 +1102,7 @@ function intersect(tree: Tree, T1: Node, T2: Node): Node {
 
 function difference(tree: Tree, T1: Node, T2: Node): Node {
     if (T1 === Node.nil) return Node.nil;
-    if (T2 === Node.nil) return importSubtree(tree, T1, /*includeMinMax*/ false, tree);
+    if (T2 === Node.nil) return importSubtree(tree, T1, tree);
     const { left: L2, range: k2, right: R2 } = T2;
     const [L1, k1, R1] = split(tree, T1, k2);
     const Tl = difference(tree, L1, L2);

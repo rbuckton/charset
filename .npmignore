@@ -2,4 +2,4 @@
 .gitignore
 tsconfig.json
 src
-dist/tests
+dist/__test__
